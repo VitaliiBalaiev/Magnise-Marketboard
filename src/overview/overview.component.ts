@@ -5,6 +5,7 @@ import {RestapiService} from '../services/restapi.service';
 import {InstrumentStoreService} from '../services/instrument-store.service';
 import {NgForOf, NgIf} from '@angular/common';
 import {FormsModule} from '@angular/forms';
+import {WatchlistService} from '../services/watchlist.service';
 
 @Component({
   selector: 'app-overview',
@@ -17,36 +18,43 @@ import {FormsModule} from '@angular/forms';
   standalone: true,
   styleUrl: './overview.component.css'
 })
-export class OverviewComponent implements OnInit, OnDestroy {
+export class OverviewComponent implements OnInit {
   instruments: Instrument[] = [];
   selectedInstrumentId: string | null = null;
   selectedSymbol: string = '';
   selectedAsset: any = null;
+  providers: string[] = [];
+  selectedProvider: string = '';
   subscriptionIdCounter: number = 1;
 
   constructor(
     private restApiService: RestapiService,
     private instrumentStore: InstrumentStoreService,
-    private websocketService: WebsocketService
+    private websocketService: WebsocketService,
+    private watchlistService: WatchlistService,
   ) {
   }
 
   ngOnInit(): void {
-    this.loadInstruments();
+    this.loadProviders();
     this.websocketService.initialize();
     this.websocketService.getMessage().subscribe(message => this.handleAssetData(message));
   }
 
-  ngOnDestroy() {
-    this.websocketService.ngOnDestroy();
-  }
-
-  async loadInstruments() {
+  async loadInstruments(provider: string) {
     try {
-      await this.restApiService.fetchInstruments();
+      await this.restApiService.fetchInstruments(provider);
       this.instruments = this.instrumentStore.getInstruments();
     } catch (error) {
       console.error('Error loading instruments', error);
+    }
+  }
+
+  async loadProviders(): Promise<void> {
+    try {
+      this.providers = await this.restApiService.fetchProviders();
+    } catch (error) {
+      console.error('Error loading providers: ', error);
     }
   }
 
@@ -102,6 +110,17 @@ export class OverviewComponent implements OnInit, OnDestroy {
         };
       }
 
+    }
+  }
+
+  addToWatchlist(): void {
+    const selectedInstrument = this.instruments.find(instrument => instrument.symbol === this.selectedSymbol);
+    if (selectedInstrument && this.selectedProvider) {
+      this.watchlistService.addToWatchlist({
+        provider: this.selectedProvider,
+        instrumentId: selectedInstrument.id,
+        symbol: selectedInstrument.symbol,
+      });
     }
   }
 }

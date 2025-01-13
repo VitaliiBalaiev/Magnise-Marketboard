@@ -1,4 +1,12 @@
 <div>
+  <label for="provider">Choose a Provider:</label>
+  <select id="provider" [(ngModel)]="selectedProvider" (change)="loadInstruments(selectedProvider)">
+    <option *ngFor="let provider of providers" [value]="provider">{{ provider }}</option>
+  </select>
+</div>
+
+
+<div>
   <label for="instrument">Choose an Instrument:</label>
   <select id="instrument" [(ngModel)]="selectedSymbol" (change)="onInstrumentSelect()">
     <option *ngFor="let instrument of instruments" [value]="instrument.symbol" [attr.data-id]="instrument.id">
@@ -16,6 +24,11 @@
   </div>
 </div>
 
+<button (click)="addToWatchlist()">Add to Watchlist</button>
+
+
 <div *ngIf="!selectedAsset">
   <p>Please select an instrument from the dropdown to view its data.</p>
 </div>
+
+
