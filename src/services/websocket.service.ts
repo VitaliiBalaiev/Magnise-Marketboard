@@ -27,10 +27,6 @@ export class WebsocketService {
     }
   }
 
-  public ngOnDestroy(): void {
-    this.closeWebSocket();
-  }
-
   private connectToWebSocket(): void {
     const websocketUrl = `${this.baseWssUri}/api/streaming/ws/v1/realtime?token=${this.accessToken}`;
     this.websocket = webSocket(websocketUrl);

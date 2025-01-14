@@ -1,34 +1,67 @@
-<div>
-  <label for="provider">Choose a Provider:</label>
-  <select id="provider" [(ngModel)]="selectedProvider" (change)="loadInstruments(selectedProvider)">
-    <option *ngFor="let provider of providers" [value]="provider">{{ provider }}</option>
-  </select>
-</div>
+<div class="dropdown-container">
+  <button class="dropdown-toggle" (click)="toggleDropdown()">
+    {{ selectedAsset?.instrument?.symbol || 'Select an Instrument' }}
+  </button>
 
+  <div *ngIf="isDropdownOpen" class="dropdown-menu">
+    <div class="provider-filters">
+      <span
+        *ngFor="let provider of providers"
+        (click)="onProviderSelect(provider)"
+        [class.active]="provider === selectedProvider"
+      >
+        {{ provider }}
+      </span>
+    </div>
 
-<div>
-  <label for="instrument">Choose an Instrument:</label>
-  <select id="instrument" [(ngModel)]="selectedSymbol" (change)="onInstrumentSelect()">
-    <option *ngFor="let instrument of instruments" [value]="instrument.symbol" [attr.data-id]="instrument.id">
-      {{ instrument.symbol }}
-    </option>
-  </select>
+    <div class="search-bar">
+      <input
+        type="text"
+        placeholder="Search instruments..."
+        [(ngModel)]="searchQuery"
+        (input)="filterAssets()"
+      />
+    </div>
+
+    <ul *ngIf="!selectedProvider">
+      <li *ngFor="let asset of assets" (click)="onAssetSelect(asset)">
+        {{ asset.instrument.symbol }} [{{ asset.provider }}]
+      </li>
+    </ul>
+
+    <ul *ngIf="selectedProvider">
+      <li *ngFor="let asset of filteredAssets" (click)="onAssetSelect(asset)">
+        {{ asset.instrument.symbol }} [{{ selectedProvider}}]
+      </li>
+    </ul>
+  </div>
 </div>
 
 <div *ngIf="selectedAsset">
-  <h3>Asset Data for {{ selectedAsset.symbol }}:</h3>
+  <h3>Asset Data for {{ selectedAsset.instrument.symbol }}:</h3>
   <div>
-    <p><strong>Price:</strong> {{ selectedAsset.price  }}</p>
+    <p><strong>Price:</strong> {{ selectedAsset.price }}</p>
     <p><strong>Time:</strong> {{ selectedAsset.timestamp }}</p>
     <p><strong>Change:</strong> {{ selectedAsset.change }} ({{ selectedAsset.changePct }}%)</p>
   </div>
 </div>
 
-<button (click)="addToWatchlist()">Add to Watchlist</button>
-
+<!--<button *ngIf="selectedAsset" (click)="addToWatchlist()">Add to Watchlist</button>-->
 
 <div *ngIf="!selectedAsset">
-  <p>Please select an instrument from the dropdown to view its data.</p>
+  <p>Please select an asset from the dropdown to view its data.</p>
+</div>
+
+<div>
+  <div id="chart-container" style="width: 100%; height: 400px;"></div>
 </div>
 
 
+<div *ngIf="selectedAsset" class="timeframe-buttons">
+  <button
+    *ngFor="let timeframe of timeframes"
+    (click)="loadCandlestickData(selectedAsset.instrument.id, selectedAsset.provider, timeframe.interval, timeframe.periodicity)"
+  >
+    {{ timeframe.label }}
+  </button>
+</div>

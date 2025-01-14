@@ -2,13 +2,14 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {environment} from '../environments/environment.development';
 import {firstValueFrom} from 'rxjs';
-import {InstrumentStoreService} from './instrument-store.service';
+import {Candlestick} from '../models/candlestick.model';
+import {Asset} from '../models/asset.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class RestapiService {
-  constructor(private http: HttpClient, private instrumentStore: InstrumentStoreService) {}
+  constructor(private http: HttpClient) {}
 
   async getAccessToken(): Promise<string> {
     const body = new HttpParams()
@@ -50,31 +51,68 @@ export class RestapiService {
     return response.data;
   }
 
-  async fetchInstruments(provider: string): Promise<void> {
+  async fetchAssetInstruments(): Promise<Asset[]> {
     try {
       const token = localStorage.getItem('accessToken');
-
       if (!token) {
         console.error('Authorization token is missing.');
+        return [];
       }
-
       const headers = new HttpHeaders({
         Authorization: `Bearer ${token}`,
       });
 
-      const response: any = await firstValueFrom(
-        this.http.get<{ data: any[] }>(`/api/instruments/v1/instruments?provider=${provider}`, { headers })
+      const providersResponse: any = await firstValueFrom(
+        this.http.get<{ data: string[] }>(`/api/instruments/v1/providers`, { headers })
       );
+      const providers = providersResponse.data;
 
-      const instruments = response.data.map((instrument: { id: string; symbol: string; }) => ({
-        id: instrument.id,
-        symbol: instrument.symbol,
-      }));
+      const assets: Asset[] = [];
 
-      this.instrumentStore.setInstruments(instruments);
+      for (const provider of providers) {
+        const instrumentsResponse: any = await firstValueFrom(
+          this.http.get<{ data: { id: string; symbol: string }[] }>(
+            `/api/instruments/v1/instruments?provider=${provider}`,
+            { headers }
+          )
+        );
+
+        const providerAssets = instrumentsResponse.data.map((item: { id: string; symbol: string }) => ({
+          instrument: {
+            id: item.id,
+            symbol: item.symbol,
+          },
+          provider,
+          timestamp: '',
+          price: 0,
+          volume: 0,
+          change: 0,
+          changePct: 0,
+        }));
+
+        assets.push(...providerAssets);
+      }
+
+      return assets;
     } catch (error) {
-      console.error('Error fetching instruments:', error);
+      console.error('Error fetching asset instruments:', error);
+      return [];
     }
+  }
+
+  async fetchCandlestickData(instrument: string, provider: string, interval: number, periodicity: string): Promise<Candlestick[]> {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      console.error('Authorization token is missing.');
+    }
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`,
+    });
+
+    const response = await firstValueFrom(
+      this.http.get<{ data: Candlestick[] }>(`/api/bars/v1/bars/count-back?instrumentId=${instrument}&provider=${provider}&interval=${interval}&periodicity=${periodicity}&barsCount=500`, { headers })
+    );
+    return response.data;
   }
 
 

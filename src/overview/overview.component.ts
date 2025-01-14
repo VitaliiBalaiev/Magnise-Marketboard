@@ -1,52 +1,64 @@
-import {Component, OnDestroy, OnInit} from '@angular/core';
-import {WebsocketService} from '../services/websocket.service';
-import {Instrument} from '../models/instrument.model';
-import {RestapiService} from '../services/restapi.service';
-import {InstrumentStoreService} from '../services/instrument-store.service';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { WebsocketService } from '../services/websocket.service';
+import { RestapiService } from '../services/restapi.service';
+import { WatchlistService } from '../services/watchlist.service';
+import { CandlestickChartService } from '../services/candlestick-chart.service';
+import { Asset } from '../models/asset.model';
 import {NgForOf, NgIf} from '@angular/common';
 import {FormsModule} from '@angular/forms';
-import {WatchlistService} from '../services/watchlist.service';
 
 @Component({
   selector: 'app-overview',
-  imports: [
-    NgForOf,
-    FormsModule,
-    NgIf,
-  ],
   templateUrl: './overview.component.html',
+  styleUrls: ['./overview.component.css'],
   standalone: true,
-  styleUrl: './overview.component.css'
+  imports: [
+    NgIf,
+    NgForOf,
+    FormsModule
+  ]
 })
-export class OverviewComponent implements OnInit {
-  instruments: Instrument[] = [];
-  selectedInstrumentId: string | null = null;
-  selectedSymbol: string = '';
-  selectedAsset: any = null;
+export class OverviewComponent implements OnInit, OnDestroy {
+  assets: Asset[] = [];
+  filteredAssets: Asset[] = [];
+  selectedAsset: Asset | undefined;
   providers: string[] = [];
-  selectedProvider: string = '';
+  selectedProvider: string | null = null;
+  searchQuery: string = '';
+  isDropdownOpen: boolean = false;
   subscriptionIdCounter: number = 1;
+
+  timeframes = [
+    { label: '1 Minute', interval: 1, periodicity: 'minute' },
+    { label: '1 Hour', interval: 1, periodicity: 'hour' },
+    { label: '1 Day', interval: 1, periodicity: 'day' },
+    { label: '1 Week', interval: 7, periodicity: 'day' },
+    { label: '1 Month', interval: 30, periodicity: 'day' },
+    { label: '1 Year', interval: 1, periodicity: 'year' },
+  ];
 
   constructor(
     private restApiService: RestapiService,
-    private instrumentStore: InstrumentStoreService,
     private websocketService: WebsocketService,
     private watchlistService: WatchlistService,
-  ) {
-  }
+    private candlestickChartService: CandlestickChartService
+  ) {}
 
   ngOnInit(): void {
     this.loadProviders();
+    this.loadAssets();
     this.websocketService.initialize();
-    this.websocketService.getMessage().subscribe(message => this.handleAssetData(message));
+    this.websocketService.getMessage().subscribe((message) => this.handleAssetData(message));
+
+    const chartContainer = document.getElementById('chart-container');
+    if (chartContainer) {
+      this.candlestickChartService.initChart(chartContainer);
+    }
   }
 
-  async loadInstruments(provider: string) {
-    try {
-      await this.restApiService.fetchInstruments(provider);
-      this.instruments = this.instrumentStore.getInstruments();
-    } catch (error) {
-      console.error('Error loading instruments', error);
+  ngOnDestroy(): void {
+    if (this.selectedAsset) {
+      this.unsubscribeFromAsset(this.selectedAsset);
     }
   }
 
@@ -54,73 +66,91 @@ export class OverviewComponent implements OnInit {
     try {
       this.providers = await this.restApiService.fetchProviders();
     } catch (error) {
-      console.error('Error loading providers: ', error);
+      console.error('Error loading providers:', error);
     }
   }
 
-  onInstrumentSelect(): void {
-    const selectedInstrument = this.instruments.find(instrument => instrument.symbol === this.selectedSymbol);
-
-    if (selectedInstrument) {
-      if (this.selectedInstrumentId !== selectedInstrument.id) {
-        if (this.selectedInstrumentId) {
-          const unsubscribeMessage = {
-            type: 'l1-subscription',
-            id: (this.subscriptionIdCounter++).toString(),
-            instrumentId: this.selectedInstrumentId,
-            provider: 'simulation',
-            subscribe: false,
-            kinds: ['last']
-          };
-          this.websocketService.sendMessage(unsubscribeMessage);
-        }
-
-        this.selectedInstrumentId = selectedInstrument.id;
-        const message = {
-          type: 'l1-subscription',
-          id: (this.subscriptionIdCounter++).toString(),
-          instrumentId: this.selectedInstrumentId,
-          provider: 'simulation',
-          subscribe: true,
-          kinds: ['last']
-        };
-        this.websocketService.sendMessage(message);
-      }
+  async loadAssets(): Promise<void> {
+    try {
+      this.assets = await this.restApiService.fetchAssetInstruments();
+    } catch (error) {
+      console.error('Error loading assets:', error);
     }
+  }
+
+  toggleDropdown(): void {
+    this.isDropdownOpen = !this.isDropdownOpen;
+  }
+
+  filterAssets(): void {
+    this.filteredAssets = this.assets.filter(
+      (asset) =>
+        (!this.selectedProvider || asset.provider === this.selectedProvider) &&
+        (!this.searchQuery || asset.instrument.symbol.toLowerCase().includes(this.searchQuery.toLowerCase()))
+    );
+  }
+
+  onProviderSelect(provider: string): void {
+    if (this.selectedProvider === provider) {
+      this.selectedProvider = null;
+      this.filteredAssets = this.assets;
+    } else {
+      this.selectedProvider = provider;
+      this.filteredAssets = this.assets.filter(asset => asset.provider === provider);
+    }
+  }
+
+  onAssetSelect(asset: Asset): void {
+    if (this.selectedAsset) {
+      this.unsubscribeFromAsset(this.selectedAsset);
+    }
+
+    this.selectedAsset = asset;
+    this.subscribeToAsset(asset);
+    this.loadCandlestickData(asset.instrument.id, asset.provider, 1, 'minute');
+    this.isDropdownOpen = false;
+  }
+
+  subscribeToAsset(asset: Asset): void {
+    const message = {
+      type: 'l1-subscription',
+      id: (this.subscriptionIdCounter++).toString(),
+      instrumentId: asset.instrument.id,
+      provider: asset.provider,
+      subscribe: true,
+      kinds: ['last'],
+    };
+    this.websocketService.sendMessage(message);
+  }
+
+  unsubscribeFromAsset(asset: Asset): void {
+    const message = {
+      type: 'l1-subscription',
+      id: (this.subscriptionIdCounter++).toString(),
+      instrumentId: asset.instrument.id,
+      provider: asset.provider,
+      subscribe: false,
+      kinds: ['last'],
+    };
+    this.websocketService.sendMessage(message);
   }
 
   handleAssetData(message: any): void {
-    if (message.type === 'l1-update' && message.instrumentId === this.selectedInstrumentId) {
-      const last = message.last;
-
-      this.instruments.find(instrument => instrument.symbol === this.selectedSymbol);
-      if (this.selectedAsset) {
-        this.selectedAsset.symbol = this.selectedSymbol;
-        this.selectedAsset.price = last.price;
-        this.selectedAsset.timestamp = last.timestamp;
-        this.selectedAsset.change = last.change;
-        this.selectedAsset.changePct = last.changePct;
-      } else {
-        this.selectedAsset = {
-          symbol: this.selectedSymbol,
-          price: last.price,
-          timestamp: last.timestamp,
-          change: last.change,
-          changePct: last.changePct
-        };
-      }
-
+    if (message.type === 'l1-update' && this.selectedAsset?.instrument.id === message.instrumentId) {
+      this.selectedAsset!.price = message.last.price;
+      this.selectedAsset!.timestamp = message.last.timestamp;
+      this.selectedAsset!.change = message.last.change;
+      this.selectedAsset!.changePct = message.last.changePct;
     }
   }
 
-  addToWatchlist(): void {
-    const selectedInstrument = this.instruments.find(instrument => instrument.symbol === this.selectedSymbol);
-    if (selectedInstrument && this.selectedProvider) {
-      this.watchlistService.addToWatchlist({
-        provider: this.selectedProvider,
-        instrumentId: selectedInstrument.id,
-        symbol: selectedInstrument.symbol,
-      });
+
+  async loadCandlestickData(instrumentId: string, provider: string, interval: number, periodicity: string): Promise<void> {
+    try {
+      const data = await this.restApiService.fetchCandlestickData(instrumentId, provider, interval, periodicity);
+      this.candlestickChartService.setCandlestickData(data);
+    } catch (error) {
+      console.error('Error loading candlestick data:', error);
     }
   }
 }
