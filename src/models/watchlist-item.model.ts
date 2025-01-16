@@ -1,8 +1,13 @@
 export interface WatchlistItem {
-  provider: string;
   instrumentId: string;
+  provider: string;
   symbol: string;
-  price?: number;
+  price: number;
+  volume: number;
+  askPrice?: number;
+  askVolume?: number;
+  bidPrice?: number;
+  bidVolume?: number;
   change?: number;
   changePct?: number;
   timestamp?: string;

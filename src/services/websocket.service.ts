@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {Injectable, OnDestroy} from '@angular/core';
 import {webSocket, WebSocketSubject} from 'rxjs/webSocket';
 import {Subject, Subscription} from 'rxjs';
 import {environment} from '../environments/environment.development';
@@ -7,7 +7,7 @@ import {RestapiService} from './restapi.service';
 @Injectable({
   providedIn: 'root'
 })
-export class WebsocketService {
+export class WebsocketService implements OnDestroy {
   private accessToken: string | null = null;
   private websocket: WebSocketSubject<any> | null = null;
   private websocketSubscription: Subscription | null = null;
@@ -36,6 +36,10 @@ export class WebsocketService {
       error: (error) => console.error('WebSocket error:', error),
       complete: () => console.log('WebSocket connection closed')
     });
+  }
+
+  ngOnDestroy() {
+    this.closeWebSocket();
   }
 
   private closeWebSocket(): void {

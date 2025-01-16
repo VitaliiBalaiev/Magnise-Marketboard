@@ -1,14 +1,20 @@
-<div>
-  <h2>Watchlist</h2>
-  <ul>
-    <li *ngFor="let item of watchlist">
-      <span>{{ item.provider }} - {{ item.symbol }}</span>
-      <button (click)="removeFromWatchlist(item)">Remove</button>
-      <div>
-        <strong>Price:</strong> {{ item.price }} <br>
-        <strong>Change:</strong> {{ item.change }} ({{ item.changePct }}%) <br>
-        <strong>Timestamp:</strong> {{ item.timestamp }}
-      </div>
-    </li>
-  </ul>
+<div *ngFor="let item of watchlist">
+  <div class="watchlist-item">
+    <div class="instrument-id">Asset: {{ item.symbol }}</div>
+    <div class="price">Price: {{ item.price }}</div>
+    <div class="volume">Volume: {{ item.volume }}</div>
+    <div class="bid">
+      Bid: {{ item.bidPrice }} (Volume: {{ item.bidVolume }})
+    </div>
+    <div class="ask">
+      Ask: {{ item.askPrice }} (Volume: {{ item.askVolume }})
+    </div>
+    <div class="change">
+      Change: {{ item.change }} ({{ item.changePct }}%)
+    </div>
+    <div class="timestamp">
+      Last Updated: {{ item.timestamp }}
+    </div>
+    <button (click)="removeFromWatchlist(item)">Remove</button>
+  </div>
 </div>

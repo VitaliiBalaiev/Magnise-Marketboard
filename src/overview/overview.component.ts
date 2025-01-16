@@ -60,6 +60,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
     if (this.selectedAsset) {
       this.unsubscribeFromAsset(this.selectedAsset);
     }
+    this.selectedAsset = undefined;
   }
 
   async loadProviders(): Promise<void> {
@@ -133,17 +134,30 @@ export class OverviewComponent implements OnInit, OnDestroy {
       kinds: ['last'],
     };
     this.websocketService.sendMessage(message);
+
   }
 
   handleAssetData(message: any): void {
-    if (message.type === 'l1-update' && this.selectedAsset?.instrument.id === message.instrumentId) {
-      this.selectedAsset!.price = message.last.price;
-      this.selectedAsset!.timestamp = message.last.timestamp;
-      this.selectedAsset!.change = message.last.change;
-      this.selectedAsset!.changePct = message.last.changePct;
+    if (this.selectedAsset != undefined) {
+      if (message.type === 'l1-update' && message.last) {
+        this.selectedAsset!.price = message.last.price;
+        this.selectedAsset!.timestamp = message.last.timestamp;
+        this.selectedAsset!.change = message.last.change;
+        this.selectedAsset!.changePct = message.last.changePct;
+      }
     }
   }
 
+  addToWatchlist(): void {
+    if (this.selectedAsset) {
+      const item = {
+        instrumentId: this.selectedAsset.instrument.id,
+        provider: this.selectedAsset.provider,
+        symbol: this.selectedAsset.instrument.symbol
+      };
+      this.watchlistService.addToWatchlist(item);
+    }
+  }
 
   async loadCandlestickData(instrumentId: string, provider: string, interval: number, periodicity: string): Promise<void> {
     try {

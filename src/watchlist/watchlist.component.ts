@@ -40,7 +40,11 @@ export class WatchlistComponent implements OnInit, OnDestroy {
         instrumentId: item.instrumentId,
         provider: item.provider,
         subscribe: true,
-        kinds: ['last'],
+        "kinds": [
+          "ask",
+          "bid",
+          "last"
+        ]
       };
       this.websocketService.sendMessage(message);
     });
@@ -50,10 +54,23 @@ export class WatchlistComponent implements OnInit, OnDestroy {
         if (message.type === 'l1-update') {
           const item = this.watchlist.find(w => w.instrumentId === message.instrumentId);
           if (item) {
-            item.price = message.last.price;
-            item.change = message.last.change;
-            item.changePct = message.last.changePct;
-            item.timestamp = message.last.timestamp;
+            if (message.last) {
+              item.price = message.last.price;
+              item.volume = message.last.volume;
+              item.change = message.last.change;
+              item.changePct = message.last.changePct;
+              item.timestamp = message.last.timestamp;
+            }
+
+            if (message.ask) {
+              item.askPrice = message.ask.price;
+              item.askVolume = message.ask.volume;
+            }
+
+            if (message.bid) {
+              item.bidPrice = message.bid.price;
+              item.bidVolume = message.bid.volume;
+            }
           }
         }
       })
@@ -73,7 +90,7 @@ export class WatchlistComponent implements OnInit, OnDestroy {
         instrumentId: item.instrumentId,
         provider: item.provider,
         subscribe: false,
-        kinds: ['last'],
+        kinds: ['ask, bid, last'],
       };
       this.websocketService.sendMessage(message);
     });

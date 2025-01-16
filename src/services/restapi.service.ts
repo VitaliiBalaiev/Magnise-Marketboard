@@ -115,5 +115,4 @@ export class RestapiService {
     return response.data;
   }
 
-
 }
