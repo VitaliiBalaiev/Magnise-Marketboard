@@ -1,6 +1,5 @@
 import { Injectable } from '@angular/core';
-import {createChart, IChartApi, ISeriesApi, Time, UTCTimestamp} from 'lightweight-charts';
-import {Candlestick} from '../models/candlestick.model';
+import {createChart, IChartApi, ISeriesApi, UTCTimestamp} from 'lightweight-charts';
 
 @Injectable({
   providedIn: 'root',
@@ -11,27 +10,25 @@ export class CandlestickChartService {
 
   initChart(container: HTMLElement): void {
     this.chart = createChart(container, {
-      width: container.offsetWidth,
-      height: 400,
+      width: container.clientWidth,
+      height: container.clientHeight || 400,
       layout: {
-        textColor: '#000',
+        background: { color: '#0E1218FF' },
+        textColor: '#DDD',
       },
       grid: {
-        vertLines: { color: '#e1e1e1' },
-        horzLines: { color: '#e1e1e1' },
-      },
-      timeScale: {
-        borderColor: '#cccccc',
+        vertLines: { color: '#444' },
+        horzLines: { color: '#444' },
       },
     });
 
     this.candlestickSeries = this.chart.addCandlestickSeries({
-      upColor: 'rgba(0, 255, 0, 0.6)',
-      downColor: 'rgba(255, 0, 0, 0.6)',
-      borderDownColor: 'rgba(255, 0, 0, 1)',
-      borderUpColor: 'rgba(0, 255, 0, 1)',
-      wickDownColor: 'rgba(255, 0, 0, 1)',
-      wickUpColor: 'rgba(0, 255, 0, 1)',
+      upColor: 'rgba(20,194,151,255)',
+      downColor: 'rgba(255,105,89,255)',
+      borderDownColor: 'rgba(255,105,89,255)',
+      borderUpColor: 'rgba(20,194,151,255)',
+      wickDownColor: 'rgba(255,105,89,255)',
+      wickUpColor: 'rgba(20,194,151,255)',
     });
   }
 
@@ -50,5 +47,6 @@ export class CandlestickChartService {
     });
 
     this.candlestickSeries.setData(transformedData);
+    this.chart.timeScale().fitContent();
   }
 }

@@ -4,7 +4,7 @@ import { RestapiService } from '../services/restapi.service';
 import { WatchlistService } from '../services/watchlist.service';
 import { CandlestickChartService } from '../services/candlestick-chart.service';
 import { Asset } from '../models/asset.model';
-import {NgForOf, NgIf} from '@angular/common';
+import {DatePipe, NgClass, NgForOf, NgIf} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 
 @Component({
@@ -15,7 +15,9 @@ import {FormsModule} from '@angular/forms';
   imports: [
     NgIf,
     NgForOf,
-    FormsModule
+    FormsModule,
+    DatePipe,
+    NgClass
   ]
 })
 export class OverviewComponent implements OnInit, OnDestroy {
@@ -74,6 +76,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
   async loadAssets(): Promise<void> {
     try {
       this.assets = await this.restApiService.fetchAssetInstruments();
+      this.filteredAssets = [...this.assets];
     } catch (error) {
       console.error('Error loading assets:', error);
     }
@@ -84,11 +87,18 @@ export class OverviewComponent implements OnInit, OnDestroy {
   }
 
   filterAssets(): void {
-    this.filteredAssets = this.assets.filter(
-      (asset) =>
-        (!this.selectedProvider || asset.provider === this.selectedProvider) &&
-        (!this.searchQuery || asset.instrument.symbol.toLowerCase().includes(this.searchQuery.toLowerCase()))
-    );
+    if (this.selectedProvider) {
+      this.filteredAssets = this.assets.filter(
+        (asset) =>
+          (!this.selectedProvider || asset.provider === this.selectedProvider) &&
+          (!this.searchQuery || asset.instrument.symbol.toLowerCase().includes(this.searchQuery.toLowerCase()))
+      );
+    } else {
+      this.filteredAssets = this.assets.filter(
+        (asset) =>
+          (!this.searchQuery || asset.instrument.symbol.toLowerCase().includes(this.searchQuery.toLowerCase()))
+      );
+    }
   }
 
   onProviderSelect(provider: string): void {
@@ -108,7 +118,7 @@ export class OverviewComponent implements OnInit, OnDestroy {
 
     this.selectedAsset = asset;
     this.subscribeToAsset(asset);
-    this.loadCandlestickData(asset.instrument.id, asset.provider, 1, 'minute');
+    this.loadCandlestickData(asset.instrument.id, asset.provider, 1, 'day');
     this.isDropdownOpen = false;
   }
 
@@ -134,11 +144,10 @@ export class OverviewComponent implements OnInit, OnDestroy {
       kinds: ['last'],
     };
     this.websocketService.sendMessage(message);
-
   }
 
   handleAssetData(message: any): void {
-    if (this.selectedAsset != undefined) {
+    if (this.selectedAsset != undefined && this.selectedAsset.instrument.id === message.instrumentId) {
       if (message.type === 'l1-update' && message.last) {
         this.selectedAsset!.price = message.last.price;
         this.selectedAsset!.timestamp = message.last.timestamp;

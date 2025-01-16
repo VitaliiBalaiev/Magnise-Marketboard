@@ -3,14 +3,15 @@ import { Subscription } from 'rxjs';
 import { WatchlistService } from '../services/watchlist.service';
 import { WebsocketService } from '../services/websocket.service';
 import {WatchlistItem} from '../models/watchlist-item.model';
-import {NgForOf} from '@angular/common';
+import {NgClass, NgForOf} from '@angular/common';
 
 @Component({
   selector: 'app-watchlist',
   templateUrl: './watchlist.component.html',
   styleUrls: ['./watchlist.component.css'],
   imports: [
-    NgForOf
+    NgForOf,
+    NgClass
   ],
   standalone: true
 })
@@ -59,7 +60,6 @@ export class WatchlistComponent implements OnInit, OnDestroy {
               item.volume = message.last.volume;
               item.change = message.last.change;
               item.changePct = message.last.changePct;
-              item.timestamp = message.last.timestamp;
             }
 
             if (message.ask) {

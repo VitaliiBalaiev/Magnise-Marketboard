@@ -1,20 +1,32 @@
-<div *ngFor="let item of watchlist">
-  <div class="watchlist-item">
-    <div class="instrument-id">Asset: {{ item.symbol }}</div>
-    <div class="price">Price: {{ item.price }}</div>
-    <div class="volume">Volume: {{ item.volume }}</div>
-    <div class="bid">
-      Bid: {{ item.bidPrice }} (Volume: {{ item.bidVolume }})
+<div class="watchlist-container">
+  <div class="watchlist-header">
+    <div>Symbol</div>
+    <div>Price</div>
+    <div>Volume</div>
+    <div>Bid</div>
+    <div>Bid Volume</div>
+    <div>Ask</div>
+    <div>Ask Volume</div>
+    <div>Change</div>
+    <div>Change %</div>
+  </div>
+
+  <div *ngFor="let item of watchlist">
+    <div class="watchlist-item">
+      <div class="symbol">{{ item.symbol }} ({{ item.provider }})</div>
+      <div>{{ item.price }}</div>
+      <div class="volume">{{ item.volume }}</div>
+      <div class="bid">{{ item.bidPrice }}</div>
+      <div class="volume">{{ item.bidVolume }}</div>
+      <div class="ask">{{ item.askPrice }}</div>
+      <div class="volume">{{ item.askVolume }}</div>
+      <div [ngClass]="item.change! >= 0 ? 'positive-change' : 'negative-change'">
+        {{ item.change }}
+      </div>
+      <div [ngClass]="item.change! >= 0 ? 'positive-change' : 'negative-change'">
+        {{ item.changePct }}%
+      </div>
+      <button (click)="removeFromWatchlist(item)"></button>
     </div>
-    <div class="ask">
-      Ask: {{ item.askPrice }} (Volume: {{ item.askVolume }})
-    </div>
-    <div class="change">
-      Change: {{ item.change }} ({{ item.changePct }}%)
-    </div>
-    <div class="timestamp">
-      Last Updated: {{ item.timestamp }}
-    </div>
-    <button (click)="removeFromWatchlist(item)">Remove</button>
   </div>
 </div>

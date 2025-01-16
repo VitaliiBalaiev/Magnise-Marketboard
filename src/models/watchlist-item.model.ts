@@ -10,5 +10,4 @@ export interface WatchlistItem {
   bidVolume?: number;
   change?: number;
   changePct?: number;
-  timestamp?: string;
 }

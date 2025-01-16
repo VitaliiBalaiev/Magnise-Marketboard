@@ -1,6 +1,6 @@
 <div class="dropdown-container">
-  <button class="dropdown-toggle" (click)="toggleDropdown()">
-    {{ selectedAsset?.instrument?.symbol || 'Select an Instrument' }}
+  <button class="dropdown-toggle-button" (click)="toggleDropdown()">
+    <strong>{{ selectedAsset?.instrument?.symbol || 'Select an Asset' }}</strong>
   </button>
 
   <div *ngIf="isDropdownOpen" class="dropdown-menu">
@@ -17,51 +17,75 @@
     <div class="search-bar">
       <input
         type="text"
-        placeholder="Search instruments..."
+        placeholder="Search"
         [(ngModel)]="searchQuery"
         (input)="filterAssets()"
       />
     </div>
 
     <ul *ngIf="!selectedProvider">
-      <li *ngFor="let asset of assets" (click)="onAssetSelect(asset)">
-        {{ asset.instrument.symbol }} [{{ asset.provider }}]
+      <li *ngFor="let asset of filteredAssets" (click)="onAssetSelect(asset)">
+        <strong>{{ asset.instrument.symbol }}</strong>
+        ({{ asset.provider }})
       </li>
     </ul>
 
     <ul *ngIf="selectedProvider">
       <li *ngFor="let asset of filteredAssets" (click)="onAssetSelect(asset)">
-        {{ asset.instrument.symbol }} [{{ selectedProvider}}]
+        <strong>{{ asset.instrument.symbol }}</strong>
+        ({{ selectedProvider }})
       </li>
     </ul>
   </div>
 </div>
 
-<div *ngIf="selectedAsset">
-  <h3>Asset Data for {{ selectedAsset.instrument.symbol }}:</h3>
-  <div>
-    <p><strong>Price:</strong> {{ selectedAsset.price }}</p>
-    <p><strong>Time:</strong> {{ selectedAsset.timestamp }}</p>
-    <p><strong>Change:</strong> {{ selectedAsset.change }} ({{ selectedAsset.changePct }}%)</p>
+<div class="asset-container">
+  <div class="asset-card" *ngIf="selectedAsset">
+    <div class="asset-header">
+      <p class="asset-symbol">
+        {{ selectedAsset.instrument.symbol }}
+        <span
+          class="asset-indicator"
+          [ngClass]="{'positive': selectedAsset.change > 0, 'negative': selectedAsset.change < 0}">
+      {{ selectedAsset.change > 0 ? '▲' : '▼' }}
+    </span>
+      </p>
+      <p class="asset-time">{{ selectedAsset.timestamp | date: 'dd.MM.yyyy HH:mm' }}</p>
+    </div>
+    <div class="asset-price">
+      <p class="price">{{ selectedAsset.price }}</p>
+    </div>
+    <div class="asset-change">
+      <p class="change">
+    <span class="change-value" [ngClass]="{'positive': selectedAsset.change > 0, 'negative': selectedAsset.change < 0}">
+      {{ selectedAsset.change }}
+    </span>
+        <span class="change-pct"
+              [ngClass]="{'positive': selectedAsset.change > 0, 'negative': selectedAsset.change < 0}">
+      ({{ selectedAsset.changePct }}%)
+    </span>
+      </p>
+    </div>
+    <button class="watchlist-btn" (click)="addToWatchlist()">Add to Watchlist</button>
+  </div>
+
+  <div *ngIf="!selectedAsset" class="no-asset">
+    <p>Please select an asset from the dropdown to view its data.</p>
   </div>
 </div>
 
-<button *ngIf="selectedAsset" (click)="addToWatchlist()">Add to Watchlist</button>
+<div class="candlestick-chart">
+  <div id="chart-container"></div>
 
-<div *ngIf="!selectedAsset">
-  <p>Please select an asset from the dropdown to view its data.</p>
+  <div *ngIf="selectedAsset" class="timeframe-buttons">
+    <p class="timeframe-label">Timeframes</p>
+    <button
+      *ngFor="let timeframe of timeframes"
+      (click)="loadCandlestickData(selectedAsset.instrument.id, selectedAsset.provider, timeframe.interval, timeframe.periodicity)"
+    >
+      {{ timeframe.label }}
+    </button>
+  </div>
+
 </div>
 
-<div>
-  <div id="chart-container" style="width: 100%; height: 400px;"></div>
-</div>
-
-
-<div *ngIf="selectedAsset" class="timeframe-buttons">
-  <button
-    *ngFor="let timeframe of timeframes"
-    (click)="loadCandlestickData(selectedAsset.instrument.id, selectedAsset.provider, timeframe.interval, timeframe.periodicity)"
-  >
-    {{ timeframe.label }}
-  </button>
-</div>

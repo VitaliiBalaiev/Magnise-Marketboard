@@ -1,1 +1,16 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --dark-color: #050505;
+  --light-color: #f1f0f0;
+  --primary-color: #0e1218;
+  --secondary-color: #1c2025;
+  --button-active-color: #007bff;
+  --button-hover-color: #0056b3;
+}
+
+body {
+  font-family: Poppins, sans-serif;
+  background-color: var(--dark-color);
+  color: var(--light-color);
+  margin: 0;
+
+}
