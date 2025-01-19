@@ -1,12 +1,12 @@
-import {Injectable} from '@angular/core';
-import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
-import {environment} from '../environments/environment.development';
-import {firstValueFrom} from 'rxjs';
-import {Candlestick} from '../models/candlestick.model';
-import {Asset} from '../models/asset.model';
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../environments/environment.development';
+import { firstValueFrom } from 'rxjs';
+import { Candlestick } from '../models/candlestick.model';
+import { Asset } from '../models/asset.model';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class RestapiService {
   constructor(private http: HttpClient) {}
@@ -22,11 +22,9 @@ export class RestapiService {
       const response = await firstValueFrom(
         this.http.post<{ access_token: string }>(environment.tokenEndpoint, body)
       );
-
       const accessToken = response.access_token;
       localStorage.setItem('accessToken', accessToken);
       return accessToken;
-
     } catch (error) {
       console.error('Error fetching access token:', error);
       throw error;
@@ -34,49 +32,26 @@ export class RestapiService {
   }
 
   async fetchProviders(): Promise<string[]> {
-    const token = localStorage.getItem('accessToken');
-
-    if (!token) {
-      console.error('Authorization token is missing.');
-    }
-
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`,
-    });
-
     const response: any = await firstValueFrom(
-      this.http.get<{ data: string[] }>('/api/instruments/v1/providers', { headers })
+      this.http.get<{ data: string[] }>('/api/instruments/v1/providers')
     );
-
     return response.data;
   }
 
   async fetchAssetInstruments(): Promise<Asset[]> {
     try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
-        console.error('Authorization token is missing.');
-        return [];
-      }
-      const headers = new HttpHeaders({
-        Authorization: `Bearer ${token}`,
-      });
-
       const providersResponse: any = await firstValueFrom(
-        this.http.get<{ data: string[] }>(`/api/instruments/v1/providers`, { headers })
+        this.http.get<{ data: string[] }>('/api/instruments/v1/providers')
       );
       const providers = providersResponse.data;
 
       const assets: Asset[] = [];
-
       for (const provider of providers) {
         const instrumentsResponse: any = await firstValueFrom(
           this.http.get<{ data: { id: string; symbol: string }[] }>(
-            `/api/instruments/v1/instruments?provider=${provider}`,
-            { headers }
+            `/api/instruments/v1/instruments?provider=${provider}`
           )
         );
-
         const providerAssets = instrumentsResponse.data.map((item: { id: string; symbol: string }) => ({
           instrument: {
             id: item.id,
@@ -89,10 +64,8 @@ export class RestapiService {
           change: 0,
           changePct: 0,
         }));
-
         assets.push(...providerAssets);
       }
-
       return assets;
     } catch (error) {
       console.error('Error fetching asset instruments:', error);
@@ -101,18 +74,11 @@ export class RestapiService {
   }
 
   async fetchCandlestickData(instrument: string, provider: string, interval: number, periodicity: string): Promise<Candlestick[]> {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      console.error('Authorization token is missing.');
-    }
-    const headers = new HttpHeaders({
-      Authorization: `Bearer ${token}`,
-    });
-
     const response = await firstValueFrom(
-      this.http.get<{ data: Candlestick[] }>(`/api/bars/v1/bars/count-back?instrumentId=${instrument}&provider=${provider}&interval=${interval}&periodicity=${periodicity}&barsCount=500`, { headers })
+      this.http.get<{ data: Candlestick[] }>(
+        `/api/bars/v1/bars/count-back?instrumentId=${instrument}&provider=${provider}&interval=${interval}&periodicity=${periodicity}&barsCount=500`
+      )
     );
     return response.data;
   }
-
 }
